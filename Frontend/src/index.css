@@ -1,0 +1,153 @@
+@import "tailwindcss"; 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  /* Custom component classes for the JD-CV Matcher */
+  .btn-primary {
+    @apply px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply px-8 py-4 bg-white text-gray-800 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-300 border border-gray-300 shadow-md;
+  }
+  
+  .card {
+    @apply bg-white rounded-2xl shadow-lg border border-gray-200;
+  }
+  
+  .card-red {
+    @apply bg-white rounded-2xl shadow-lg border border-red-100;
+  }
+  
+  .upload-zone {
+    @apply border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 border-gray-300 hover:border-red-400 hover:bg-red-50;
+  }
+  
+  .upload-zone-active {
+    @apply border-red-400 bg-red-50;
+  }
+  
+  .upload-zone-success {
+    @apply border-green-400 bg-green-50;
+  }
+  
+  .progress-step {
+    @apply w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300;
+  }
+  
+  .progress-step-active {
+    @apply bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg scale-110;
+  }
+  
+  .progress-step-inactive {
+    @apply bg-gray-200 text-gray-500;
+  }
+  
+  .skill-tag {
+    @apply px-3 py-1 rounded-full text-sm shadow-md;
+  }
+  
+  .skill-tag-matched {
+    @apply bg-red-500 text-white;
+  }
+  
+  .skill-tag-missing {
+    @apply bg-gray-500 text-white;
+  }
+  
+  .qa-card {
+    @apply bg-gray-50 rounded-xl p-6 border border-gray-200;
+  }
+  
+  .match-score-circle {
+    @apply inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-r from-red-500 to-red-600 shadow-lg;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent;
+  }
+  
+  .bg-pattern {
+    background-image: radial-gradient(circle at 25px 25px, rgba(255,255,255,0.2) 2%, transparent 2%);
+    background-size: 50px 50px;
+  }
+  
+  .glassmorphism {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20;
+  }
+  
+  .shadow-custom {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-custom-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-red {
+  animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Print styles for PDF export */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-friendly {
+    background: white !important;
+    color: black !important;
+  }
+}

@@ -1,0 +1,11 @@
+ipykernel
+fastapi
+uvicorn
+python-multipart
+PyPDF2
+python-docx
+nltk
+openai
+python-dotenv
+sentence-transformers
+numpy
