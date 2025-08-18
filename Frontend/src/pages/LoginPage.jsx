@@ -7,10 +7,14 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [keepSignedIn, setKeepSignedIn] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        
         try {
             const response = await api.post('/token', new URLSearchParams({
                 username,
@@ -31,6 +35,8 @@ const LoginPage = () => {
             navigate('/');
         } catch (err) {
             setError('Invalid username or password');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -51,7 +57,8 @@ const LoginPage = () => {
                             name="username"
                             type="text"
                             required
-                            className="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                            disabled={isLoading}
+                            className="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                         />
@@ -68,7 +75,8 @@ const LoginPage = () => {
                             name="password"
                             type="password"
                             required
-                            className="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                            disabled={isLoading}
+                            className="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
@@ -78,7 +86,8 @@ const LoginPage = () => {
                             id="keep-signed-in"
                             name="keep-signed-in"
                             type="checkbox"
-                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            disabled={isLoading}
+                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 disabled:cursor-not-allowed"
                             checked={keepSignedIn}
                             onChange={(e) => setKeepSignedIn(e.target.checked)}
                         />
@@ -93,12 +102,21 @@ const LoginPage = () => {
                     <div>
                         <button
                             type="submit"
-                            className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            disabled={isLoading}
+                            className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
                         >
-                            Sign in
+                            {isLoading ? 'Signing in...' : 'Sign in'}
                         </button>
                     </div>
                 </form>
+                
+                {/* Loading indicator below the form */}
+                {isLoading && (
+                    <div className="flex items-center justify-center space-x-2 text-gray-600">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+                        <span className="text-sm">Signing you in...</span>
+                    </div>
+                )}
             </div>
         </div>
     );
