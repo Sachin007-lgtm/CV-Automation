@@ -19,6 +19,7 @@ from app.schemas import JDModel, CVModel
 from app.parsing import extract_text_from_file, clean_resume_json, to_bool
 from app.llm import convert_jd_to_json, convert_resume_to_json, generate_interview_questions
 from app.matching import compute_similarity, get_match_level
+from matching import health_router  # Import the health router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,6 +32,7 @@ ALLOWED_CONTENT_TYPES = [
 ]
 
 app = FastAPI()
+app.include_router(health_router)  # Register the health router to enable default and health check endpoints
 
 def download_nltk_data():
     """Downloads the necessary NLTK data if not already present."""
@@ -64,8 +66,8 @@ def startup_event():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://cv-automation-nine.vercel.app", 
-        "https://cv-automation-l47o.onrender.com",
+        "https://cv-automation-nine.vercel.app",   # your frontend on Render
+        "https://cv-automation-production.up.railway.app",  # your new backend
         "http://localhost:5173"
     ],
     allow_credentials=True,
@@ -534,6 +536,6 @@ async def upload_jd(
         return db_jd
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # type: ignore
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
