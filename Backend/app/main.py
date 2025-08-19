@@ -19,7 +19,7 @@ from app.schemas import JDModel, CVModel
 from app.parsing import extract_text_from_file, clean_resume_json, to_bool
 from app.llm import convert_jd_to_json, convert_resume_to_json, generate_interview_questions
 from app.matching import compute_similarity, get_match_level
-from matching import health_router  # Import the health router
+from .matching import health_router  # Import the health router using relative import
 
 logging.basicConfig(level=logging.INFO)
 
