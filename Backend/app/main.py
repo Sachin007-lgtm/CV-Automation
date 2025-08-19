@@ -66,7 +66,6 @@ def startup_event():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://cv-automation-nine.vercel.app",   # your frontend on Render
         "https://cv-automation-production.up.railway.app",  # your new backend
         "http://localhost:5173"
     ],
