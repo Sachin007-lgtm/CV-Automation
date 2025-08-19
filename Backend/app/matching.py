@@ -10,6 +10,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from dotenv import load_dotenv
 import numpy as np
+from fastapi import APIRouter, Response  # type: ignore
 
 try:
     from .schemas import JDModel, CVModel, Experience, Education, LocationModel, Skill, Qualifications
@@ -590,3 +591,18 @@ def compute_similarity(jd: JDModel, cv: CVModel) -> Tuple[float, Dict]:
     }
     
     return round(float(final_score), 4), details
+
+# Health check endpoint added for server health check
+health_router = APIRouter()
+
+@health_router.get('/health')
+def health_check():
+    return Response(content='OK', status_code=200)
+
+# Default route added to avoid 404 on GET /
+@health_router.get('/')
+def default_route():
+    return Response(content='Default route: server is running', status_code=200)
+
+# Optionally: register health_router to the main app in your main application file
+# For example, in main.py: app.include_router(health_router)
