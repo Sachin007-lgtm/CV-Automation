@@ -405,51 +405,55 @@ def calculate_weighted_skills_match(skill_categories: Dict[str, List[str]], skil
     dw = DESIRED_SKILLS_WEIGHT if desired_weight is None else float(desired_weight)
     base = BASE_SKILL_SCORE if base_skill_score is None else float(base_skill_score)
 
-    # Initialize category scores
-    category_scores = {}
+    # Initialize category details and weighted contributions
     category_details = {}
+    weighted_contributions = {}
     
     # Process each skill category
     for category, skills in skill_categories.items():
         if not skills:
-            category_scores[category] = 0.0
+            # Handle empty categories gracefully
             category_details[category] = {
                 'present': [],
                 'absent': [],
                 'total': 0,
                 'present_count': 0,
-                'score': 0.0
+                'score': None,  # Use None to indicate N/A for empty categories
+                'presence_ratio': None,  # Use None to indicate N/A
+                'percentage': None  # Use None to indicate N/A
             }
+            weighted_contributions[category] = 0.0  # Empty categories contribute 0 to overall score
             continue
             
         present_skills = [skill for skill in skills if skill_presence.get(skill, False)]
         absent_skills = [skill for skill in skills if not skill_presence.get(skill, False)]
         
-        # Calculate category score based on presence ratio
-        presence_ratio = len(present_skills) / len(skills) if skills else 0.0
+        # Calculate category presence ratio
+        presence_ratio = len(present_skills) / len(skills)
         
-        # Apply category weight
+        # Calculate weighted contribution to overall score
         if category == 'critical':
-            category_score = presence_ratio * cw
+            weighted_contribution = presence_ratio * cw
         elif category == 'important':
-            category_score = presence_ratio * iw
+            weighted_contribution = presence_ratio * iw
         elif category == 'extra':
-            category_score = presence_ratio * dw
+            weighted_contribution = presence_ratio * dw
         else:
-            category_score = presence_ratio * 0.1  # Default weight for unknown categories
+            weighted_contribution = presence_ratio * 0.1  # Default weight for unknown categories
         
-        category_scores[category] = category_score
+        weighted_contributions[category] = weighted_contribution
         category_details[category] = {
             'present': present_skills,
             'absent': absent_skills,
             'total': len(skills),
             'present_count': len(present_skills),
-            'score': category_score,
-            'presence_ratio': presence_ratio
+            'score': presence_ratio,  # Store as decimal (0-1) for consistency
+            'presence_ratio': presence_ratio,
+            'percentage': presence_ratio * 100.0  # Keep percentage for backward compatibility
         }
     
-    # Calculate total weighted score
-    total_score = sum(category_scores.values()) + base
+    # Calculate total weighted score from contributions
+    total_score = sum(weighted_contributions.values()) + base
     
     # Ensure score is between 0 and 1
     total_score = min(1.0, max(0.0, total_score))
@@ -473,12 +477,15 @@ def calculate_match_status(skills_match: float, skills_details: Dict, skills_mat
     if skills_match_type == "weighted" and skills_details:
         critical_details = skills_details.get('critical', {})
         if critical_details:
-            critical_presence_ratio = critical_details.get('presence_ratio', 0.0)
-            critical_score_percentage = critical_presence_ratio * 100
+            critical_presence_ratio = critical_details.get('presence_ratio')
             
-            # Rejected if critical skills less than configured threshold
-            if critical_score_percentage < critical_min_percent:
-                return "Rejected"
+            # Only check critical skills threshold if there are critical skills defined
+            if critical_presence_ratio is not None:
+                critical_score_percentage = critical_presence_ratio * 100
+                
+                # Rejected if critical skills less than configured threshold
+                if critical_score_percentage < critical_min_percent:
+                    return "Rejected"
     
     # Pass if total skills score is 70% or higher
     if skills_match >= pass_min:

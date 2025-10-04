@@ -418,3 +418,104 @@ def test_compute_similarity():
     assert "experience_suitability" in details
     assert "education_relevance" in details
     assert "location_compatibility" in details
+
+def test_calculate_weighted_skills_match():
+    """Test weighted skills matching calculation."""
+    # Test with all critical skills present, empty important/extra
+    skill_categories = {
+        'critical': ['Python', 'SQL'],
+        'important': [],
+        'extra': []
+    }
+    
+    skill_presence = {
+        'Python': True,
+        'SQL': True
+    }
+    
+    total_score, category_details = matching.calculate_weighted_skills_match(skill_categories, skill_presence)
+    
+    # Should return valid score and details
+    assert 0 <= total_score <= 1
+    assert isinstance(category_details, dict)
+    
+    # Critical skills should show 1.0 (100%)
+    assert category_details['critical']['score'] == 1.0
+    assert category_details['critical']['present_count'] == 2
+    assert category_details['critical']['total'] == 2
+    
+    # Empty categories should have None scores
+    assert category_details['important']['score'] is None
+    assert category_details['extra']['score'] is None
+    
+    # Total score should be: (2/2 * 0.4) + 0.1 base = 0.5
+    assert abs(total_score - 0.5) < 0.001
+
+def test_calculate_weighted_skills_match_partial():
+    """Test weighted skills matching with partial matches."""
+    skill_categories = {
+        'critical': ['Python', 'SQL', 'FastAPI'],
+        'important': ['Docker', 'AWS'],
+        'extra': ['React']
+    }
+    
+    skill_presence = {
+        'Python': True,
+        'SQL': True,
+        'FastAPI': False,  # Missing 1/3 critical
+        'Docker': True,
+        'AWS': False,      # Missing 1/2 important
+        'React': True      # All 1/1 extra present
+    }
+    
+    total_score, category_details = matching.calculate_weighted_skills_match(skill_categories, skill_presence)
+    
+    # Check individual category scores (as decimals)
+    assert abs(category_details['critical']['score'] - (2/3)) < 0.01  # 0.67 (66.67%)
+    assert category_details['important']['score'] == 0.5  # 0.5 (50%)
+    assert category_details['extra']['score'] == 1.0     # 1.0 (100%)
+    
+    # Check present/absent counts
+    assert category_details['critical']['present_count'] == 2
+    assert category_details['critical']['total'] == 3
+    assert category_details['important']['present_count'] == 1
+    assert category_details['important']['total'] == 2
+    
+    # Total score should be: (2/3 * 0.4) + (1/2 * 0.3) + (1/1 * 0.2) + 0.1
+    expected_total = (2/3 * 0.4) + (1/2 * 0.3) + (1/1 * 0.2) + 0.1
+    assert abs(total_score - expected_total) < 0.001
+
+def test_calculate_match_status_with_empty_critical():
+    """Test match status calculation with empty critical skills."""
+    # Test with empty critical skills (should not cause rejection)
+    skills_details = {
+        'critical': {
+            'presence_ratio': None,  # Empty category
+            'score': None
+        }
+    }
+    
+    status = matching.calculate_match_status(0.8, skills_details, "weighted")
+    assert status == "Pass"  # Should pass based on overall score
+    
+    # Test with low critical skills (should cause rejection)
+    skills_details = {
+        'critical': {
+            'presence_ratio': 0.5,  # 50% critical skills
+            'score': 50.0
+        }
+    }
+    
+    status = matching.calculate_match_status(0.8, skills_details, "weighted", critical_min_percent=70.0)
+    assert status == "Rejected"  # Should be rejected due to low critical skills
+    
+    # Test with high critical skills (should pass)
+    skills_details = {
+        'critical': {
+            'presence_ratio': 1.0,  # 100% critical skills
+            'score': 100.0
+        }
+    }
+    
+    status = matching.calculate_match_status(0.8, skills_details, "weighted", critical_min_percent=70.0)
+    assert status == "Pass"  # Should pass

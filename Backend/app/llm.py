@@ -3,6 +3,7 @@ import json
 import re
 import groq
 import threading
+import logging
 from typing import Optional, Dict, List
 from dotenv import load_dotenv
 from groq import APIError
@@ -277,6 +278,89 @@ NOTE: Output only valid JSON matching the exact schema structure.
         # Catch any other unexpected errors (e.g., network issues, Groq library errors) and wrap them
         raise LLMJsonError(f"An unexpected error occurred while processing the resume: {e}") from e
 
+def clean_jd_json(jd_json: dict) -> dict:
+    """Clean and validate JD JSON to ensure required fields are present"""
+    # Ensure required string fields have defaults
+    if not jd_json.get("jobTitle"):
+        jd_json["jobTitle"] = "Position Title Not Specified"
+    if not jd_json.get("jobSummary"):
+        jd_json["jobSummary"] = "Job summary not provided"
+    
+    # Ensure required list fields exist
+    if "keyResponsibilities" not in jd_json or not isinstance(jd_json["keyResponsibilities"], list):
+        jd_json["keyResponsibilities"] = ["Responsibilities not specified"]
+    if "extractedKeywords" not in jd_json or not isinstance(jd_json["extractedKeywords"], list):
+        jd_json["extractedKeywords"] = []
+    if "requiredSkills" not in jd_json:
+        jd_json["requiredSkills"] = []
+    if "educationRequired" not in jd_json or not isinstance(jd_json["educationRequired"], list):
+        jd_json["educationRequired"] = []
+    
+    # Ensure nested objects exist with defaults
+    if "companyProfile" not in jd_json or not isinstance(jd_json["companyProfile"], dict):
+        jd_json["companyProfile"] = {
+            "companyName": "Company not specified",
+            "industry": None,
+            "website": None,
+            "description": None
+        }
+    
+    if "location" not in jd_json or not isinstance(jd_json["location"], dict):
+        jd_json["location"] = {
+            "city": "Unknown",
+            "state": "Unknown",
+            "country": "Unknown",
+            "remoteStatus": "Not specified"
+        }
+    
+    if "qualifications" not in jd_json or not isinstance(jd_json["qualifications"], dict):
+        jd_json["qualifications"] = {
+            "required": [],
+            "preferred": []
+        }
+    else:
+        # Ensure qualifications has required sub-fields
+        if "required" not in jd_json["qualifications"] or not isinstance(jd_json["qualifications"]["required"], list):
+            jd_json["qualifications"]["required"] = []
+        if "preferred" not in jd_json["qualifications"] or not isinstance(jd_json["qualifications"]["preferred"], list):
+            jd_json["qualifications"]["preferred"] = []
+    
+    if "compensationAndBenefits" not in jd_json or not isinstance(jd_json["compensationAndBenefits"], dict):
+        jd_json["compensationAndBenefits"] = {
+            "salaryRange": None,
+            "benefits": []
+        }
+    else:
+        if "benefits" not in jd_json["compensationAndBenefits"] or not isinstance(jd_json["compensationAndBenefits"]["benefits"], list):
+            jd_json["compensationAndBenefits"]["benefits"] = []
+    
+    if "applicationInfo" not in jd_json or not isinstance(jd_json["applicationInfo"], dict):
+        jd_json["applicationInfo"] = {
+            "howToApply": None,
+            "applyLink": None,
+            "contactEmail": None
+        }
+    
+    # Handle age_filter properly
+    if "age_filter" in jd_json and jd_json["age_filter"] is not None:
+        if not isinstance(jd_json["age_filter"], dict):
+            jd_json["age_filter"] = None
+        else:
+            age_filter = jd_json["age_filter"]
+            # Ensure min_age and max_age are integers or None
+            for field in ["min_age", "max_age"]:
+                if field in age_filter:
+                    val = age_filter[field]
+                    if isinstance(val, str) and not val.isdigit():
+                        age_filter[field] = None
+                    elif val is not None and not isinstance(val, int):
+                        try:
+                            age_filter[field] = int(val)
+                        except (ValueError, TypeError):
+                            age_filter[field] = None
+    
+    return jd_json
+
 def convert_jd_to_json(jd_text: str) -> dict:
     local_client = get_groq_client()
     try:
@@ -307,6 +391,7 @@ You are a JSON-extraction engine. Convert the following raw job posting text int
 - Extract age and gender filters if specified.
 - For the fields "age_filter.min_age" and "age_filter.max_age", only use an integer value or null. Do not use strings like "Unknown", "N/A", or any non-integer value. If the value is not specified or not a number, set it to null.
 - Do not format the response in Markdown or any other format. Just output raw JSON.
+- IMPORTANT: Ensure all required fields are present. If information is missing, use appropriate defaults like empty arrays [] for lists or "Not specified" for strings.
 Schema:
 {schema}
 Job Description Text:
@@ -316,7 +401,7 @@ NOTE: Please output only a valid JSON matching the EXACT schema.
         response = local_client.chat.completions.create(
             model=LLM_MODEL_NAME,
             messages=[
-                {"role": "system", "content": "You are a JSON extraction expert. Always return valid JSON only."},
+                {"role": "system", "content": "You are a JSON extraction expert. Always return valid JSON only. Ensure all required fields are present with appropriate defaults if not found."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
@@ -326,12 +411,11 @@ NOTE: Please output only a valid JSON matching the EXACT schema.
         cleaned_content = clean_json_response(content)
         try:
             result = json.loads(cleaned_content)
-            if "requiredSkills" not in result:
-                result["requiredSkills"] = []
-            if "educationRequired" not in result:
-                result["educationRequired"] = []
+            # Clean and validate the result
+            result = clean_jd_json(result)
             return result
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error for JD: {e}. Raw content: {cleaned_content[:500]}")
             raise LLMJsonError("Could not parse the response from the AI service as JSON.")
     except APIError as e:
         # Explicitly catch and re-raise APIError as LLMJsonError for consistent error handling by the caller
