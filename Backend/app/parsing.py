@@ -34,6 +34,7 @@ def extract_text_from_file(file_path):
                 reader = PyPDF2.PdfReader(f)
                 for page in reader.pages:
                     text += page.extract_text() or ""
+
             return text
         else:
             logger.warning(f"Unsupported file type: {ext} for file {file_path}")
